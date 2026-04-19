@@ -5,7 +5,21 @@ import numpy as np
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_FILE = BASE_DIR.parent / "Data" / "iati-activities-in-kenya-no-location-information.csv"
+DATA_FILENAME = "iati-activities-in-kenya-no-location-information.csv"
+
+
+def resolve_data_file() -> Path | None:
+    # Check common local and cloud locations for the dataset.
+    candidates = [
+        BASE_DIR / "Data" / DATA_FILENAME,
+        BASE_DIR.parent / "Data" / DATA_FILENAME,
+        Path.cwd() / "Data" / DATA_FILENAME,
+        Path.cwd().parent / "Data" / DATA_FILENAME,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 # Load models from the app directory so deploys do not depend on current working directory.
 duration_model = joblib.load(BASE_DIR / "duration_model.pkl")
@@ -124,8 +138,23 @@ st.markdown("Estimate project duration and efficiency using AI.")
 text = st.text_area("Project Description")
 reporting = st.text_input("Reporting Organization")
 
-if not DATA_FILE.exists():
-    st.error(f"Dataset not found at: {DATA_FILE}")
+DATA_FILE = resolve_data_file()
+if DATA_FILE is None:
+    st.error("Dataset not found. Checked these locations:")
+    st.code(
+        "\n".join(
+            [
+                str(BASE_DIR / "Data" / DATA_FILENAME),
+                str(BASE_DIR.parent / "Data" / DATA_FILENAME),
+                str(Path.cwd() / "Data" / DATA_FILENAME),
+                str(Path.cwd().parent / "Data" / DATA_FILENAME),
+            ]
+        )
+    )
+    st.info(
+        "Add the CSV to a Data folder in the deployed repo, e.g. "
+        "dissertation_seminars_1/Data/iati-activities-in-kenya-no-location-information.csv"
+    )
     st.stop()
 
 df = pd.read_csv(DATA_FILE)
