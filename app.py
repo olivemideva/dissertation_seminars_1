@@ -2,10 +2,14 @@ import streamlit as st
 import pandas as pd
 import joblib
 import numpy as np
+from pathlib import Path
 
-# Load models
-duration_model = joblib.load("duration_model.pkl")
-eff_model = joblib.load("efficiency_model.pkl")
+BASE_DIR = Path(__file__).resolve().parent
+DATA_FILE = BASE_DIR.parent / "Data" / "iati-activities-in-kenya-no-location-information.csv"
+
+# Load models from the app directory so deploys do not depend on current working directory.
+duration_model = joblib.load(BASE_DIR / "duration_model.pkl")
+eff_model = joblib.load(BASE_DIR / "efficiency_model.pkl")
 
 st.set_page_config(
     page_title="Aid Project Prediction System",
@@ -120,7 +124,11 @@ st.markdown("Estimate project duration and efficiency using AI.")
 text = st.text_area("Project Description")
 reporting = st.text_input("Reporting Organization")
 
-df = pd.read_csv("../Data/iati-activities-in-kenya-no-location-information.csv")
+if not DATA_FILE.exists():
+    st.error(f"Dataset not found at: {DATA_FILE}")
+    st.stop()
+
+df = pd.read_csv(DATA_FILE)
 
 sectors = df["sector_group"].dropna().unique().tolist()
 st.markdown("### Project Location")
